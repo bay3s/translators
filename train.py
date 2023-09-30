@@ -83,10 +83,10 @@ if __name__ == "__main__":
 
             lstm_hidden, lstm_ctxt, _ = enc(b_source)
             logits, _ = dec(
-                lstm_hidden, lstm_ctxt, use_teacher_forcing=True, minibatch_target=b_target
+                lstm_hidden, lstm_ctxt, current_device, use_teacher_forcing=True, minibatch_target=b_target
             )
 
-            log_probs = F.log_softmax(logits, dim=-1)
+            log_probs = F.log_softmax(logits, dim=-1).to(current_device)
 
             # zero grads
             enc.zero_grad(set_to_none=True)
@@ -109,11 +109,11 @@ if __name__ == "__main__":
                 dec.eval()
 
                 with torch.no_grad():
-                    t_batch_i = b_target[0].unsqueeze(0)
-                    s_batch_i = b_source[0].unsqueeze(0)
+                    t_batch_i = b_target[0].unsqueeze(0).to(current_device)
+                    s_batch_i = b_source[0].unsqueeze(0).to(current_device)
 
                     enc_lstm_hidden, enc_lstm_ctxt, enc_layer_outputs = enc(source_batch = s_batch_i)
-                    out_tok_ids = dec.infer(enc_lstm_hidden, enc_lstm_ctxt, 10)
+                    out_tok_ids = dec.infer(enc_lstm_hidden, enc_lstm_ctxt, 10, current_device)
 
                     source_str = " ".join(np.array(source_vocab.get_itos())[s_batch_i.tolist()[0]])
                     target_str = " ".join(np.array(target_vocab.get_itos())[t_batch_i.tolist()[0]])
