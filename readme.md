@@ -2,9 +2,9 @@
 The repo covers implementations of some of the models that are covered in _"Effective Approaches to Attention-based Neural Machine Translation"_ by _Luong et al_, a seminal paper in the field of machine translation.
 A neural machine translation (NMT) system directly models the conditional probability $P(y|x)$ of translating a source sentence $x_1, x_2, ..., x_n$ to a target sentence $y_1, y_2, ... y_m$. 
 - an encoder that computes a representation for each sentence
-- a decoder which generates one target word and decomposes the conditional probability as 
+- a decoder which generates one target word and decomposes the conditional probability as
 
-$$\text{log} \space p(y|x) = \sum_{j=1}^m \text{log}p(y_j|y_{<j, s})$$
+$$\text{log} \space p(y|x) = \sum_{j=1}^m \text{log}p(y_j|y_{\lt j, s})$$
 
 #### Problem Setup
 Prior to the publication of this paper a majority of architectures used for machine translation consisted of encoder-decoder architectures relying on recurrent neural networks to encode input
