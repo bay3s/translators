@@ -89,9 +89,10 @@ class Decoder(nn.Module):
         self,
         enc_lstm_hidden: torch.Tensor,
         enc_lstm_ctxt: torch.Tensor,
+        device: torch.device,
         use_teacher_forcing: bool = False,
         minibatch_target: torch.Tensor = None,
-        max_sequence_length: int = None
+        max_sequence_length: int = None,
     ) -> Tuple[torch.Tensor, Dict]:
         """
         Forward pass for the decoder.
@@ -99,6 +100,7 @@ class Decoder(nn.Module):
         Args:
             enc_lstm_hidden (torch.Tensor): Final hidden state of the encoder LSTM.
             enc_lstm_ctxt (torch.Tensor): Final context of the encoder LSTM.
+            device (torch.device): Device on which to conduct the forward pass.
             use_teacher_forcing (bool): Whether to use teacher forcing for training the decoder.
             minibatch_target (torch.Tensor): Minibatch in the target language, required if `use_teacher_forcing=True`
             max_sequence_length (torch.Tensor): Max sequence length during prediction.
@@ -115,17 +117,17 @@ class Decoder(nn.Module):
         batch_size = enc_lstm_hidden.shape[1]
 
         # lstm hidden & ctxt
-        lstm_hidden = self._reshape_encoder_state(enc_lstm_hidden)
-        lstm_ctxt = self._reshape_encoder_state(enc_lstm_ctxt)
+        lstm_hidden = self._reshape_encoder_state(enc_lstm_hidden).to(device)
+        lstm_ctxt = self._reshape_encoder_state(enc_lstm_ctxt).to(device)
 
         # prediction ctxt
         enc_final_hidden_t = enc_lstm_hidden.transpose(0, 1)
         lstm_in_ctxt = enc_final_hidden_t.reshape(
             batch_size, 1, enc_final_hidden_t.shape[1] * enc_final_hidden_t.shape[2]
-        ).contiguous()
+        ).contiguous().to(device)
 
         # start <bos>
-        prev_token = torch.empty(batch_size, 1, dtype=torch.long).fill_(self._bos_tok_id).detach()
+        prev_token = torch.empty(batch_size, 1, dtype=torch.long).fill_(self._bos_tok_id).detach().to(device)
         pred_steps = minibatch_target.shape[1]
 
         # decoder output
@@ -149,10 +151,10 @@ class Decoder(nn.Module):
             out.append(logits)
 
             if use_teacher_forcing:
-                prev_token = minibatch_target[:, t].unsqueeze(1).detach()
+                prev_token = minibatch_target[:, t].unsqueeze(1).detach().to(device)
             else:
                 _, prev_token = logits.topk(1)
-                prev_token = prev_token.squeeze(-1).detach()
+                prev_token = prev_token.squeeze(-1).detach().to(device)
                 pass
 
         out = torch.cat(out, dim=1)
@@ -170,7 +172,8 @@ class Decoder(nn.Module):
         self,
         enc_lstm_hidden: torch.Tensor,
         enc_lstm_ctxt: torch.Tensor,
-        max_sequence_length: int
+        max_sequence_length: int,
+        device: torch.device
     ) -> List:
         """
         Generate a translated output.
@@ -179,6 +182,7 @@ class Decoder(nn.Module):
             enc_lstm_hidden (torch.Tensor): Final hidden state of the encoder LSTM.
             enc_lstm_ctxt (torch.Tensor): Final context of the encoder LSTM.
             max_sequence_length (torch.Tensor): Max sequence length during prediction.
+            device (torch.device): Device on which to run inference.
 
         Returns:
             Tuple[torch.Tensor, Dict]
@@ -192,8 +196,8 @@ class Decoder(nn.Module):
             pass
 
         # lstm hidden & ctxt
-        lstm_hidden = self._reshape_encoder_state(enc_lstm_hidden)
-        lstm_ctxt = self._reshape_encoder_state(enc_lstm_ctxt)
+        lstm_hidden = self._reshape_encoder_state(enc_lstm_hidden).to(device)
+        lstm_ctxt = self._reshape_encoder_state(enc_lstm_ctxt).to(device)
 
         # prediction ctxt
         enc_final_hidden_t = enc_lstm_hidden.transpose(0, 1)
@@ -202,7 +206,7 @@ class Decoder(nn.Module):
         ).contiguous()
 
         # start <bos>
-        prev_token = torch.empty(batch_size, 1, dtype=torch.long).fill_(self._bos_tok_id).detach()
+        prev_token = torch.empty(batch_size, 1, dtype=torch.long).fill_(self._bos_tok_id).detach().to(device)
         pred_steps = max_sequence_length
 
         for t in range(pred_steps):
@@ -225,7 +229,7 @@ class Decoder(nn.Module):
             # inference
             next_token = torch.multinomial(log_probs.squeeze(1), num_samples = 1)
             g.extend(next_token.tolist()[0])
-            prev_token = next_token.detach()
+            prev_token = next_token.detach().to(device)
             pass
 
         return g
