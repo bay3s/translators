@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
                     eval_table.add_data(e, i, source_str, target_str, out_tok_str)
                     wandb_logs["eval_table"] = eval_table
-                    print(out_tok_str)
+                    print("generated: ", out_tok_str, "expected: ", target_str)
                     pass
 
                 torch.enable_grad()
