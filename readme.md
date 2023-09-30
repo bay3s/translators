@@ -62,9 +62,10 @@ produced by the stacked LSTMs used for encoding the input.
 - [x] validate loss computation and optimization
 - [x] add teacher forcing
 - [x] modularize code
-- [ ] write training script, integrate `wandb` tracking
-- [ ] move training to GPUs
-- [ ] train partially, verify checkpoints
-- [ ] write inference code
-- [ ] implement encoder with global and local mechanisms
-- [ ] update readme
+- [x] write training script, integrate `wandb` tracking
+- [x] move training to GPUs
+- [x] train partially, verify checkpoints
+- [x] write inference code
+- [ ] implement loss estimation using validation set
+- [ ] implement encoder with global and local attention
+- [ ] update readme with architectural & training details
