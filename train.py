@@ -68,8 +68,8 @@ if __name__ == "__main__":
     train_loss_i = list()
 
     # opt / lr
-    enc_opt = torch.optim.AdamW(enc.parameters(), lr=1e-1)
-    dec_opt = torch.optim.AdamW(dec.parameters(), lr=1e-1)
+    enc_opt = torch.optim.AdamW(enc.parameters(), lr=1e-3)
+    dec_opt = torch.optim.AdamW(dec.parameters(), lr=1e-3)
     loss_function = nn.NLLLoss()
 
     # inferences
