@@ -72,6 +72,9 @@ if __name__ == "__main__":
     dec_opt = torch.optim.AdamW(dec.parameters(), lr=1e-3)
     loss_function = nn.NLLLoss()
 
+    # inferences
+    eval_table = wandb.Table(columns = ["epoch", "iteration", "source", "target", "generated"])
+
     # training loop
     for e in range(200):
         print(f"---> current_epoch: {e}")
@@ -102,27 +105,28 @@ if __name__ == "__main__":
             wandb_logs["loss"] = round(loss.item(), 2)
 
             if i % 10 == 0:
-                with torch.no_grad():
-                    # eval mode
-                    enc.eval()
-                    dec.eval()
+                enc.eval()
+                dec.eval()
 
-                    # sample
+                with torch.no_grad():
                     t_batch_i = b_target[0].unsqueeze(0)
                     s_batch_i = b_source[0].unsqueeze(0)
 
                     enc_lstm_hidden, enc_lstm_ctxt, enc_layer_outputs = enc(source_batch = s_batch_i)
                     out_tok_ids = dec.infer(enc_lstm_hidden, enc_lstm_ctxt, 10)
 
-                    out_tok_str = np.array(target_vocab.get_itos())[out_tok_ids]
-                    wandb_logs["out"] = " ".join(out_tok_str)
+                    source_str = " ".join(np.array(source_vocab.get_itos())[s_batch_i.tolist()[0]])
+                    target_str = " ".join(np.array(target_vocab.get_itos())[t_batch_i.tolist()[0]])
+                    out_tok_str = " ".join(np.array(target_vocab.get_itos())[out_tok_ids])
 
-                    # train mode
-                    enc.train()
-                    dec.train()
+                    eval_table.add_data(e, i, source_str, target_str, out_tok_str)
+                    wandb_logs["eval_table"] = eval_table
+                    print(out_tok_str)
                     pass
 
                 torch.enable_grad()
+                enc.train()
+                dec.train()
                 pass
 
             wandb.log(wandb_logs)
