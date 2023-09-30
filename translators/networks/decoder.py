@@ -1,7 +1,8 @@
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from translators.utils.torch_utils import init_xavier_uniform, init_lstm_weights
 
@@ -26,8 +27,7 @@ class Decoder(nn.Module):
             enc_lstm_layers (int): Number of layers in the stacked LSTM for the encoder.
             enc_lstm_hidden_dim (int): Hidden dimensions of the LSTM.
             bos_tok_id (int): Token id for the beginning of sentence token <bos>.
-            use_stepwise_ctxt (bool): Whether to provide the encoder hidden state as context for the decoder
-                at each step.
+            use_stepwise_ctxt (bool): Whether to provide the encoder hidden state as context for the decoder at each step.
         """
         super().__init__()
 
@@ -91,21 +91,24 @@ class Decoder(nn.Module):
         enc_lstm_ctxt: torch.Tensor,
         use_teacher_forcing: bool = False,
         minibatch_target: torch.Tensor = None,
+        max_sequence_length: int = None
     ) -> Tuple[torch.Tensor, Dict]:
         """
-        Forward pass for the decoder,
+        Forward pass for the decoder.
 
         Args:
             enc_lstm_hidden (torch.Tensor): Final hidden state of the encoder LSTM.
             enc_lstm_ctxt (torch.Tensor): Final context of the encoder LSTM.
             use_teacher_forcing (bool): Whether to use teacher forcing for training the decoder.
             minibatch_target (torch.Tensor): Minibatch in the target language, required if `use_teacher_forcing=True`
+            max_sequence_length (torch.Tensor): Max sequence length during prediction.
 
         Returns:
             Tuple[torch.Tensor, Dict]
         """
-        if use_teacher_forcing and minibatch_target is None:
-            raise ValueError(f"`minibatch_target` required when `use_teacher_forcing=True`")
+        if (use_teacher_forcing and minibatch_target is None) and max_sequence_length is None:
+            raise ValueError(f"`minibatch_target` required when `use_teacher_forcing=True` or `max_sequence_length` "
+                             f"expected.")
             pass
 
         # batch size
@@ -162,3 +165,67 @@ class Decoder(nn.Module):
             "lstm_out_tanh": lstm_out_tanh.detach(),
             "logits": out.detach(),
         }
+
+    def infer(
+        self,
+        enc_lstm_hidden: torch.Tensor,
+        enc_lstm_ctxt: torch.Tensor,
+        max_sequence_length: int
+    ) -> List:
+        """
+        Generate a translated output.
+
+        Args:
+            enc_lstm_hidden (torch.Tensor): Final hidden state of the encoder LSTM.
+            enc_lstm_ctxt (torch.Tensor): Final context of the encoder LSTM.
+            max_sequence_length (torch.Tensor): Max sequence length during prediction.
+
+        Returns:
+            Tuple[torch.Tensor, Dict]
+        """
+        # set to "1" for inference.
+        batch_size = enc_lstm_hidden.shape[1]
+        g = list()
+
+        if batch_size != 1:
+            raise ValueError("`infer` only operates on `batch_size` of 1.")
+            pass
+
+        # lstm hidden & ctxt
+        lstm_hidden = self._reshape_encoder_state(enc_lstm_hidden)
+        lstm_ctxt = self._reshape_encoder_state(enc_lstm_ctxt)
+
+        # prediction ctxt
+        enc_final_hidden_t = enc_lstm_hidden.transpose(0, 1)
+        lstm_in_ctxt = enc_final_hidden_t.reshape(
+            batch_size, 1, enc_final_hidden_t.shape[1] * enc_final_hidden_t.shape[2]
+        ).contiguous()
+
+        # start <bos>
+        prev_token = torch.empty(batch_size, 1, dtype=torch.long).fill_(self._bos_tok_id).detach()
+        pred_steps = max_sequence_length
+
+        for t in range(pred_steps):
+            if self._use_stepwise_ctxt:
+                tok_emb = self.tok_embeddings(prev_token)
+                lstm_in_ctxt_t = lstm_in_ctxt.broadcast_to(batch_size, tok_emb.shape[1], self._lstm_in_ctxt_dim)
+                lstm_in = torch.cat((tok_emb, lstm_in_ctxt_t), dim=2)
+            else:
+                lstm_in = self.tok_embeddings(prev_token)
+                pass
+
+            lstm_out, (lstm_hidden, lstm_ctxt) = self.lstm(
+                lstm_in, (lstm_hidden, lstm_ctxt)
+            )
+
+            lstm_out_tanh = torch.tanh(lstm_out)
+            logits = self.fc(lstm_out_tanh)
+            log_probs = F.softmax(logits, dim = -1)
+
+            # inference
+            next_token = torch.multinomial(log_probs.squeeze(1), num_samples = 1)
+            g.extend(next_token.tolist()[0])
+            prev_token = next_token.detach()
+            pass
+
+        return g
