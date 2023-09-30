@@ -1,0 +1,15 @@
+numpy
+torch
+tqdm==4.66.1
+wandb==0.15.11
+argparse
+gitpython
+black
+mypy
+mypy-extensions
+spacy
+torchtext
+ipykernel
+jupyter
+matplotlib
+seaborn

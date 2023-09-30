@@ -1,0 +1,15 @@
+# user-specific / generated / high-churn
+.idea
+.idea_modules
+*.iml
+*.ipr
+*.iws
+*.egg
+*.egg-info/
+
+# jupyter notebooks
+.ipynb_checkpoints/
+__pycache__/
+
+.DS_Store
+out/
