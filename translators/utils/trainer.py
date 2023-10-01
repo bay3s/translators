@@ -152,6 +152,7 @@ class Trainer:
 
             wandb_logs = dict()
             wandb_logs["train_loss"] = train_loss
+            wandb_logs["val_loss"] = val_loss
             wandb.log(wandb_logs)
             pass
 
