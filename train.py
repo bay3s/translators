@@ -15,5 +15,5 @@ if __name__ == "__main__":
 		num_epochs=200,
 		device=current_device
 	)
-	# @todo trainer.train()
+	trainer.train()
 	pass
