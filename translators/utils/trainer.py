@@ -95,13 +95,6 @@ class Trainer:
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-                sampled_idx = [random.randint(0, len(inputs)) for _ in range(int(0.2 * len(inputs)))]
-                sampled_inputs = inputs[sampled_idx]
-                for i in range(len(sampled_inputs)):
-                    inputs_i = sampled_inputs[i]
-                    self.run_inference(inputs_i)
-                    pass
-
                 self.enc_opt.zero_grad()
                 self.dec_opt.zero_grad()
 
