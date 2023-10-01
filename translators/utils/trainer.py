@@ -57,8 +57,8 @@ class Trainer:
         self.enc, self.dec = self.init_networks(
             self.source_vocab,
             self.target_vocab,
-            enc_embedding_dim=24,
-            dec_embedding_dim=24,
+            enc_embedding_dim=128,
+            dec_embedding_dim=128,
             lstm_num_layers=1,
             lstm_hidden_dim=16,
             use_bidirec_lstm=True,
