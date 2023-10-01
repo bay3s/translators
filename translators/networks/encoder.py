@@ -2,10 +2,7 @@ from typing import Tuple, Dict
 import torch
 import torch.nn as nn
 
-from translators.utils.torch_utils import (
-    init_embedding_weights,
-    init_lstm_weights
-)
+from translators.utils.torch_utils import init_embedding_weights, init_lstm_weights
 
 
 class Encoder(nn.Module):
@@ -49,7 +46,9 @@ class Encoder(nn.Module):
         self.lstm = init_lstm_weights(lstm)
         pass
 
-    def forward(self, source_batch: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
+    def forward(
+        self, source_batch: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, Dict]:
         """
         Give a minibatch of data from the source language, returns encoded representations, as well as the outputs
         at each layer in the neural network.
@@ -74,12 +73,16 @@ class Encoder(nn.Module):
         lstm_in = emb_tanh_dropout.view(batch_size, timesteps, embedding_dim)
         lstm_out, (lstm_hidden, lstm_ctxt) = self.lstm(lstm_in)
 
-        return lstm_hidden, lstm_ctxt, {
-            "emb_out": emb_out.detach(),
-            "emb_out_tanh": emb_out_tanh.detach(),
-            "emb_tanh_dropout": emb_tanh_dropout.detach(),
-            "lstm_in": lstm_in.detach(),
-            "lstm_hidden": lstm_hidden.detach(),
-            "lstm_ctxt": lstm_ctxt.detach(),
-            "lstm_out": lstm_out.detach(),
-        }
+        return (
+            lstm_hidden,
+            lstm_ctxt,
+            {
+                "emb_out": emb_out.detach(),
+                "emb_out_tanh": emb_out_tanh.detach(),
+                "emb_tanh_dropout": emb_tanh_dropout.detach(),
+                "lstm_in": lstm_in.detach(),
+                "lstm_hidden": lstm_hidden.detach(),
+                "lstm_ctxt": lstm_ctxt.detach(),
+                "lstm_out": lstm_out.detach(),
+            },
+        )

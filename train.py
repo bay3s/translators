@@ -14,7 +14,6 @@ from translators.datasets.translation_dataset import TranslationDataset
 from translators.networks.encoder import Encoder
 from translators.networks.decoder import Decoder
 
-
 # ignore warnings
 warnings.filterwarnings("ignore")
 
@@ -22,7 +21,9 @@ if __name__ == "__main__":
     # dataset
     dataset = TranslationDataset("de_core_news_sm", "en_core_web_sm")
     current_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    train_loader, (source_vocab, target_vocab) = dataset.load("train", 256, current_device)
+    train_loader, (source_vocab, target_vocab) = dataset.load(
+        "train", 256, current_device
+    )
 
     # encoder configs
     enc_embedding_dim = 256
@@ -61,7 +62,10 @@ if __name__ == "__main__":
     # logs
     logs_directory = "./logs"
 
-    wandb.init(project=f"translators", dir=Path(logs_directory).mkdir(parents=True, exist_ok=True))
+    wandb.init(
+        project=f"translators",
+        dir=Path(logs_directory).mkdir(parents=True, exist_ok=True),
+    )
 
     # training setup
     torch.enable_grad()
@@ -72,28 +76,40 @@ if __name__ == "__main__":
     dec_opt = torch.optim.AdamW(dec.parameters(), lr=1e-3)
     loss_function = nn.NLLLoss()
 
-    # inferences
-    eval_table = wandb.Table(columns = ["epoch", "iteration", "source", "target", "generated"])
+    def replace_specials(inference_out: str):
+        for special_ch in ["<bos>", "<pad>", "<eos>"]:
+            inference_out = inference_out.replace(special_ch, "")
+
+        return inference_out
 
     # training loop
     for e in range(200):
-        print(f"---> current_epoch: {e}")
+        print()
+        print(f">> current_epoch: {e}")
+        print()
+
         for i, batch in enumerate(train_loader):
-            b_source, b_target = batch
-
-            lstm_hidden, lstm_ctxt, _ = enc(b_source)
-            logits, _ = dec(
-                lstm_hidden, lstm_ctxt, current_device, use_teacher_forcing=True, minibatch_target=b_target
-            )
-
-            log_probs = F.log_softmax(logits, dim=-1).to(current_device)
-
             # zero grads
             enc.zero_grad(set_to_none=True)
             dec.zero_grad(set_to_none=True)
 
+            b_source, b_target = batch
+
+            lstm_hidden, lstm_ctxt, _ = enc(b_source)
+            logits, _ = dec(
+                lstm_hidden,
+                lstm_ctxt,
+                current_device,
+                use_teacher_forcing=True,
+                minibatch_target=b_target,
+            )
+
+            logprobs = F.log_softmax(logits, dim = -1).to(current_device)
+
             # loss
-            loss = loss_function(log_probs.view(-1, log_probs.size(-1)), b_target.view(-1))
+            loss = loss_function(
+                logprobs.view(-1, logprobs.size(-1)), b_target.view(-1)
+            )
 
             # backprop
             loss.backward()
@@ -102,9 +118,10 @@ if __name__ == "__main__":
 
             # wandb
             wandb_logs = dict()
-            wandb_logs["loss"] = round(loss.item(), 2)
+            wandb_logs["train_loss"] = round(loss.item(), 2)
 
-            if i % 10 == 0:
+            if i % 100 == 0:
+                # @todo estimate loss using the eval set.
                 enc.eval()
                 dec.eval()
 
@@ -112,16 +129,31 @@ if __name__ == "__main__":
                     t_batch_i = b_target[0].unsqueeze(0).to(current_device)
                     s_batch_i = b_source[0].unsqueeze(0).to(current_device)
 
-                    enc_lstm_hidden, enc_lstm_ctxt, enc_layer_outputs = enc(source_batch = s_batch_i)
-                    out_tok_ids = dec.infer(enc_lstm_hidden, enc_lstm_ctxt, 10, current_device)
+                    enc_lstm_hidden, enc_lstm_ctxt, enc_layer_outputs = enc(
+                        source_batch=s_batch_i
+                    )
 
-                    source_str = " ".join(np.array(source_vocab.get_itos())[s_batch_i.tolist()[0]])
-                    target_str = " ".join(np.array(target_vocab.get_itos())[t_batch_i.tolist()[0]])
-                    out_tok_str = " ".join(np.array(target_vocab.get_itos())[out_tok_ids])
+                    out_tok_ids = dec.infer(
+                        enc_lstm_hidden, enc_lstm_ctxt, 20, current_device
+                    )
 
-                    eval_table.add_data(e, i, source_str, target_str, out_tok_str)
-                    wandb_logs["eval_table"] = eval_table
-                    print("generated: ", out_tok_str, "expected: ", target_str)
+                    source_str = " ".join(
+                        np.array(source_vocab.get_itos())[s_batch_i.tolist()[0]]
+                    )
+                    target_str = " ".join(
+                        np.array(target_vocab.get_itos())[t_batch_i.tolist()[0]]
+                    )
+                    out_tok_str = " ".join(
+                        np.array(target_vocab.get_itos())[out_tok_ids]
+                    )
+
+                    print(
+                        "{\n\tgenerated: ",
+                        replace_specials(out_tok_str),
+                        ",\n\texpected: ",
+                        replace_specials(target_str),
+                        "}",
+                    )
                     pass
 
                 torch.enable_grad()
