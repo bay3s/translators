@@ -59,12 +59,12 @@ class Trainer:
         self.enc, self.dec = self.init_networks(
             self.source_vocab,
             self.target_vocab,
-            enc_embedding_dim=256,
-            dec_embedding_dim=256,
-            lstm_num_layers=4,
-            lstm_hidden_dim=256,
+            enc_embedding_dim=128,
+            dec_embedding_dim=128,
+            lstm_num_layers=2,
+            lstm_hidden_dim=32,
             use_bidirec_lstm=True,
-            dropout_p=0.025,
+            dropout_p=0.1,
             device=device,
         )
 
@@ -126,7 +126,6 @@ class Trainer:
                 self.dec_opt.step()
                 train_loss += loss.item()
                 pass
-
 
             train_loss /= len(self.train_loader)
 
