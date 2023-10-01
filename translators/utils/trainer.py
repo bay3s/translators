@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -94,6 +95,14 @@ class Trainer:
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
+                # sample inference
+                with torch.no_grad():
+                    b_source_i = inputs[0]
+                    lstm_hidden, lstm_ctxt, _ = self.enc(b_source_i.unsqueeze(0))
+                    g = self.dec.infer(lstm_hidden, lstm_ctxt, 20, self.device)
+                    print(" ".join(np.array(self.target_vocab.get_itos())[g]))
+                    pass
+
                 self.enc_opt.zero_grad()
                 self.dec_opt.zero_grad()
 
@@ -117,55 +126,13 @@ class Trainer:
                 train_loss += loss.item()
                 pass
 
+
             train_loss /= len(self.train_loader)
-            val_loss = self.estimate_val_loss()
 
             wandb_logs = dict()
             wandb_logs["train_loss"] = train_loss
-            wandb_logs["val_loss"] = val_loss
             wandb.log(wandb_logs)
             pass
-
-    def estimate_val_loss(self) -> float:
-        """
-        Estimate loss using the validation set.
-
-        Returns:
-            float
-        """
-        # validate
-        self.enc.eval()
-        self.dec.eval()
-
-        val_loss = 0.0
-        total = 0
-
-        with torch.no_grad():
-            for inputs, targets in self.val_loader:
-                # forward
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
-                lstm_hidden, lstm_ctxt, _ = self.enc(inputs)
-                logits, _ = self.dec(
-                    lstm_hidden,
-                    lstm_ctxt,
-                    self.device,
-                    use_teacher_forcing = True,
-                    minibatch_target = targets,
-                )
-
-                # loss
-                logprobs = F.log_softmax(logits, dim = -1).to(self.device)
-                loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
-                val_loss += loss.item()
-                total += targets.size(0)
-                pass
-
-        val_loss /= len(self.val_loader)
-
-        self.enc.train()
-        self.dec.train()
-
-        return val_loss
 
     @staticmethod
     def init_networks(
