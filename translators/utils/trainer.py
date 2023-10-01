@@ -85,20 +85,20 @@ class Trainer:
         logs_directory = "./logs"
         wandb.init(project = f"translators", dir = Path(logs_directory).mkdir(parents = True, exist_ok = True))
 
+        torch.enable_grad()
+        self.enc.train()
+        self.dec.train()
+
         for epoch in range(self.num_epochs):
             print(f"Epoch [{epoch + 1}/{self.num_epochs}]")
-
-            torch.enable_grad()
-            self.enc.train()
-            self.dec.train()
 
             train_loss = 0.0
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
-                # sample inference
+                # run inference on the validation set.
                 with torch.no_grad():
-                    b_source_i = inputs[0]
+                    b_source_i, _ = [x[0] for x in next(iter(self.val_loader))]
                     lstm_hidden, lstm_ctxt, _ = self.enc(b_source_i.unsqueeze(0))
                     g = self.dec.infer(lstm_hidden, lstm_ctxt, 20, self.device)
                     print(remove_special_toks(" ".join(np.array(self.target_vocab.get_itos())[g])))
