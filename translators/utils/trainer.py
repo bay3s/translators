@@ -62,7 +62,7 @@ class Trainer:
             enc_embedding_dim=128,
             dec_embedding_dim=128,
             lstm_num_layers=2,
-            lstm_hidden_dim=32,
+            lstm_hidden_dim=256,
             use_bidirec_lstm=True,
             dropout_p=0.5,
             device=device,
@@ -127,7 +127,28 @@ class Trainer:
                 train_loss += loss.item()
                 pass
 
+            # val loss
+            with torch.no_grad():
+                val_loss = 0.0
+                for inputs, targets in self.val_loader:
+                    inputs, targets = inputs.to(self.device), targets.to(self.device)
+                    lstm_hidden, lstm_ctxt, _ = self.enc(inputs)
+                    logits, _ = self.dec(
+                        lstm_hidden,
+                        lstm_ctxt,
+                        self.device,
+                        use_teacher_forcing = True,
+                        minibatch_target = targets,
+                    )
+
+                    # loss
+                    logprobs = F.log_softmax(logits, dim = -1).to(self.device)
+                    loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
+                    val_loss += loss.item()
+                    pass
+
             train_loss /= len(self.train_loader)
+            val_loss /= len(self.val_loader)
 
             wandb_logs = dict()
             wandb_logs["train_loss"] = train_loss
