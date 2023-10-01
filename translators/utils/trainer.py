@@ -10,6 +10,7 @@ from spacy.vocab import Vocab
 import wandb
 
 from translators.utils.constants import Constants
+from translators.utils.training_utils import remove_special_toks
 from translators.datasets.translation_dataset import TranslationDataset
 
 from translators.networks.encoder import Encoder
@@ -100,7 +101,7 @@ class Trainer:
                     b_source_i = inputs[0]
                     lstm_hidden, lstm_ctxt, _ = self.enc(b_source_i.unsqueeze(0))
                     g = self.dec.infer(lstm_hidden, lstm_ctxt, 20, self.device)
-                    print(" ".join(np.array(self.target_vocab.get_itos())[g]))
+                    print(remove_special_toks(" ".join(np.array(self.target_vocab.get_itos())[g])))
                     pass
 
                 self.enc_opt.zero_grad()
