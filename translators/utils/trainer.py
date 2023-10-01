@@ -10,6 +10,8 @@ from spacy.vocab import Vocab
 import wandb
 
 from translators.utils.constants import Constants
+from translators.utils.training_utils import remove_special_toks
+
 from translators.datasets.translation_dataset import TranslationDataset
 
 from translators.networks.encoder import Encoder
@@ -87,6 +89,7 @@ class Trainer:
 
         for epoch in range(self.num_epochs):
             train_loss = 0.0
+
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
@@ -111,90 +114,35 @@ class Trainer:
                 self.enc_opt.step()
                 self.dec_opt.step()
                 train_loss += loss.item()
+
+                # infer
+                with torch.no_grad():
+                    b_source_i = inputs[0]
+                    source_toks = []
+
+                    for tok_idx in b_source_i.clone().to("cpu").squeeze().tolist():
+                        source_toks.append(self.source_vocab.get_itos()[tok_idx])
+                        pass
+
+                    lstm_hidden, lstm_ctxt, _ = self.enc(b_source_i.unsqueeze(0))
+                    decoded_tok_ids = self.dec.infer(lstm_hidden, lstm_ctxt, 20, self.device)
+
+                    decoded_toks = []
+                    for tok_id in decoded_tok_ids:
+                        decoded_toks.append(self.target_vocab.get_itos()[tok_id])
+                        pass
+
+                    # log message
+                    print("translation: ", remove_special_toks(" ".join(decoded_toks)))
+                    pass
                 pass
 
             train_loss /= len(self.train_loader)
-            val_loss = self.estimate_val_loss()
 
             wandb_logs = dict()
             wandb_logs["train_loss"] = train_loss
-            wandb_logs["val_loss"] = val_loss
             wandb.log(wandb_logs)
             pass
-
-    def run_inference(self, b_source_i):
-        with torch.no_grad():
-            source_words = []
-
-            for tok_idx in b_source_i.clone().to("cpu").squeeze().tolist():
-                source_words.append(self.source_vocab.get_itos()[tok_idx])
-                pass
-
-            lstm_hidden, lstm_ctxt, _ = self.enc(b_source_i.unsqueeze(0))
-            decoded_tok_ids = self.dec.infer(lstm_hidden, lstm_ctxt, 20, self.device)
-
-            decoded_words = []
-            for tok_id in decoded_tok_ids:
-                decoded_words.append(self.target_vocab.get_itos()[tok_id])
-                pass
-
-            log_message = " ".join(decoded_words)
-            print("translation output: ", log_message)
-            print()
-            pass
-
-    def estimate_val_loss(self) -> float:
-        """
-        Estimate loss using the validation set.
-
-        Returns:
-            float
-        """
-        self.enc.eval()
-        self.dec.eval()
-        val_loss = 0.0
-
-        with torch.no_grad():
-            for inputs, targets in self.val_loader:
-                # forward
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
-                lstm_hidden, lstm_ctxt, _ = self.enc(inputs)
-
-                logits, _ = self.dec(
-                    lstm_hidden,
-                    lstm_ctxt,
-                    self.device,
-                    use_teacher_forcing = True,
-                    minibatch_target = targets,
-                )
-
-                # loss
-                logprobs = F.softmax(logits, dim = -1).to(self.device)
-                loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
-                val_loss += loss.item()
-                continue
-
-        val_loss /= len(self.val_loader)
-
-        # inference
-        print("with `mode=eval`")
-        sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
-        sampled_inputs = inputs[sampled_idx]
-        for i in range(len(sampled_inputs)):
-            inputs_i = sampled_inputs[i]
-            self.run_inference(inputs_i)
-            pass
-
-        self.enc.train()
-        self.dec.train()
-
-        print("with `mode=train`")
-        for i in range(len(sampled_inputs)):
-            inputs_i = sampled_inputs[i]
-            self.run_inference(inputs_i)
-            pass
-
-        return val_loss
 
     @staticmethod
     def init_networks(
