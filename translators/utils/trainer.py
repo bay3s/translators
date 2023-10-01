@@ -138,7 +138,7 @@ class Trainer:
         with torch.no_grad():
             source_words = []
 
-            for tok_idx in b_source_i.copy().to("cpu").squeeze().tolist():
+            for tok_idx in b_source_i.clone().to("cpu").squeeze().tolist():
                 source_words.append(self.source_vocab.get_itos()[tok_idx])
                 pass
 
