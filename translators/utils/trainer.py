@@ -58,12 +58,12 @@ class Trainer:
         self.enc, self.dec = self.init_networks(
             self.source_vocab,
             self.target_vocab,
-            enc_embedding_dim=64,
-            dec_embedding_dim=64,
-            lstm_num_layers=1,
-            lstm_hidden_dim=16,
+            enc_embedding_dim=256,
+            dec_embedding_dim=256,
+            lstm_num_layers=4,
+            lstm_hidden_dim=256,
             use_bidirec_lstm=True,
-            dropout_p=0.25,
+            dropout_p=0.01,
             device=device,
         )
 
@@ -143,12 +143,13 @@ class Trainer:
                 decoded_words.append(self.target_vocab.get_itos()[tok_id])
                 pass
 
-            log_message = {
-                "source: ": " ".join(source_words),
-                "target: ": " ".join(decoded_words)
-            }
+            log_message = dict({
+                "source": (" ".join(source_words)),
+                "target": (" ".join(decoded_words))
+            })
 
-            print(str(log_message), ",")
+            print(str(log_message))
+            print()
             pass
 
     def estimate_val_loss(self) -> float:

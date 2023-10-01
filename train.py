@@ -9,7 +9,7 @@ if __name__ == "__main__":
 	trainer = Trainer(
 		source_language="de_core_news_sm",
 		target_language="en_core_web_sm",
-		batch_size=32,
+		batch_size=128,
 		enc_learning_rate=1e-4,
 		dec_learning_rate=1e-4,
 		num_epochs=200,
