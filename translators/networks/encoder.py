@@ -8,7 +8,7 @@ from translators.utils.torch_utils import init_embedding_weights, init_lstm_weig
 class Encoder(nn.Module):
     def __init__(
         self,
-        vocab_size: int,
+        source_vocab_size: int,
         embedding_dim: int,
         lstm_num_layers: int,
         lstm_hidden_dim: int,
@@ -19,7 +19,7 @@ class Encoder(nn.Module):
         Initialize the encoder.
 
         Args:
-            vocab_size (int): Size of the source language vocabulary.
+            source_vocab_size (int): Size of the source language vocabulary.
             embedding_dim (int): Dimension of the token embeddings.
             lstm_num_layers (int): Number of LSTM layers to stack.
             lstm_hidden_dim (int): Dimensions of the LSTM hidden state.
@@ -29,7 +29,7 @@ class Encoder(nn.Module):
         super().__init__()
 
         tok_embeddings = nn.Embedding(
-            num_embeddings=vocab_size, embedding_dim=embedding_dim
+            num_embeddings=source_vocab_size, embedding_dim=embedding_dim
         )
 
         self.tok_embeddings = init_embedding_weights(tok_embeddings)

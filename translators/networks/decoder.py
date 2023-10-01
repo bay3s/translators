@@ -10,7 +10,7 @@ from translators.utils.torch_utils import init_xavier_uniform, init_lstm_weights
 class Decoder(nn.Module):
     def __init__(
         self,
-        vocab_size: int,
+        target_vocab_size: int,
         embedding_dim: int,
         enc_lstm_layers: int,
         enc_lstm_bidirec: bool,
@@ -22,7 +22,7 @@ class Decoder(nn.Module):
         Initialize the decoder in the sequence-to-sequence translation network.
 
         Args:
-            vocab_size (int): Vocabulary size for the target language.
+            target_vocab_size (int): Vocabulary size for the target language.
             embedding_dim (int): Dimension of the embeddings.
             enc_lstm_layers (int): Number of layers in the stacked LSTM for the encoder.
             enc_lstm_hidden_dim (int): Hidden dimensions of the LSTM.
@@ -33,7 +33,7 @@ class Decoder(nn.Module):
 
         # embeddings
         tok_embeddings = nn.Embedding(
-            num_embeddings=vocab_size, embedding_dim=embedding_dim
+            num_embeddings=target_vocab_size, embedding_dim=embedding_dim
         )
 
         self.tok_embeddings = init_xavier_uniform(tok_embeddings)
@@ -57,7 +57,7 @@ class Decoder(nn.Module):
         )
 
         self.lstm = init_lstm_weights(lstm)
-        self.fc = nn.Linear(lstm_hidden_dim, vocab_size)
+        self.fc = nn.Linear(lstm_hidden_dim, target_vocab_size)
 
         self._lstm_in_ctxt_dim = lstm_in_dim - embedding_dim
         self._bos_tok_id = bos_tok_id
