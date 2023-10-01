@@ -60,7 +60,7 @@ class Trainer:
             enc_embedding_dim=32,
             dec_embedding_dim=32,
             lstm_num_layers=1,
-            lstm_hidden_dim=32,
+            lstm_hidden_dim=16,
             use_bidirec_lstm=True,
             dropout_p=0.1,
             device=device,
