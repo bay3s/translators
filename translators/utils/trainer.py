@@ -57,12 +57,12 @@ class Trainer:
         self.enc, self.dec = self.init_networks(
             self.source_vocab,
             self.target_vocab,
-            enc_embedding_dim=256,
-            dec_embedding_dim=256,
-            lstm_num_layers=4,
-            lstm_hidden_dim=256,
+            enc_embedding_dim=128,
+            dec_embedding_dim=128,
+            lstm_num_layers=2,
+            lstm_hidden_dim=128,
             use_bidirec_lstm=True,
-            dropout_p=0.025,
+            dropout_p=0.1,
             device=device,
         )
 
@@ -133,18 +133,16 @@ class Trainer:
         Returns:
             float
         """
-        # validate
         self.enc.eval()
         self.dec.eval()
-
         val_loss = 0.0
-        total = 0
 
         with torch.no_grad():
             for inputs, targets in self.val_loader:
                 # forward
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
                 lstm_hidden, lstm_ctxt, _ = self.enc(inputs)
+
                 logits, _ = self.dec(
                     lstm_hidden,
                     lstm_ctxt,
@@ -157,7 +155,6 @@ class Trainer:
                 logprobs = F.log_softmax(logits, dim = -1).to(self.device)
                 loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
                 val_loss += loss.item()
-                total += targets.size(0)
                 pass
 
         val_loss /= len(self.val_loader)
@@ -212,7 +209,7 @@ class Trainer:
             enc_lstm_bidirec=use_bidirec_lstm,
             enc_lstm_layers=lstm_num_layers,
             bos_tok_id=source_vocab.get_stoi()[Constants.SPECIAL_TOKEN_BOS],
-            use_stepwise_ctxt=True,
+            use_stepwise_ctxt=False,
         ).to(device)
 
         return enc, dec

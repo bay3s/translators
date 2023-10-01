@@ -167,7 +167,7 @@ class Decoder(nn.Module):
                 lstm_hidden, lstm_ctxt, prev_token, lstm_in_ctxt, batch_size
             )
 
-            logprobs = F.softmax(logits, dim=-1)
+            logprobs = F.log_softmax(logits, dim=-1)
             next_token = torch.multinomial(logprobs.squeeze(1), num_samples=1)
             g.extend(next_token.tolist()[0])
             prev_token = next_token.detach().to(device)
