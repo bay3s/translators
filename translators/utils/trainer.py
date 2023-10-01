@@ -88,24 +88,9 @@ class Trainer:
             pass
 
         for epoch in range(self.num_epochs):
-            print(f">> Epoch [{epoch + 1}/{self.num_epochs}]")
-            print()
-
-            torch.enable_grad()
-            self.enc.train()
-            self.dec.train()
-
             train_loss = 0.0
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
-
-                # # inference
-                # sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
-                # sampled_inputs = inputs[sampled_idx]
-                # for i in range(len(sampled_inputs)):
-                #     inputs_i = sampled_inputs[i]
-                #     self.run_inference(inputs_i)
-                #     pass
 
                 self.enc_opt.zero_grad()
                 self.dec_opt.zero_grad()
@@ -133,12 +118,11 @@ class Trainer:
             train_loss /= len(self.train_loader)
             val_loss = self.estimate_val_loss()
 
-            if enable_wandb:
-                wandb_logs = dict()
-                wandb_logs["train_loss"] = train_loss
-                wandb_logs["val_loss"] = val_loss
-                wandb.log(wandb_logs)
-                pass
+            wandb_logs = dict()
+            wandb_logs["train_loss"] = train_loss
+            wandb_logs["val_loss"] = val_loss
+            wandb.log(wandb_logs)
+            pass
 
     def run_inference(self, b_source_i):
         with torch.no_grad():
@@ -259,7 +243,7 @@ class Trainer:
             enc_lstm_bidirec=use_bidirec_lstm,
             enc_lstm_layers=lstm_num_layers,
             bos_tok_id=source_vocab.get_stoi()[Constants.SPECIAL_TOKEN_BOS],
-            use_stepwise_ctxt=False,
+            use_stepwise_ctxt=True,
         ).to(device)
 
         return enc, dec
