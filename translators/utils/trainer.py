@@ -85,7 +85,8 @@ class Trainer:
         wandb.init(project = f"translators", dir = Path(logs_directory).mkdir(parents = True, exist_ok = True))
 
         for epoch in range(self.num_epochs):
-            print(f"Epoch [{epoch + 1}/{self.num_epochs}]")
+            print(f">> Epoch [{epoch + 1}/{self.num_epochs}]")
+            print()
 
             torch.enable_grad()
             self.enc.train()
@@ -143,12 +144,8 @@ class Trainer:
                 decoded_words.append(self.target_vocab.get_itos()[tok_id])
                 pass
 
-            log_message = dict({
-                "source": (" ".join(source_words)),
-                "target": (" ".join(decoded_words))
-            })
-
-            print(str(log_message))
+            log_message = " ".join(decoded_words)
+            print("translated_message: ", log_message)
             print()
             pass
 
