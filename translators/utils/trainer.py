@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 from typing import Tuple
 
@@ -57,12 +58,12 @@ class Trainer:
         self.enc, self.dec = self.init_networks(
             self.source_vocab,
             self.target_vocab,
-            enc_embedding_dim=128,
-            dec_embedding_dim=128,
+            enc_embedding_dim=64,
+            dec_embedding_dim=64,
             lstm_num_layers=1,
             lstm_hidden_dim=16,
             use_bidirec_lstm=True,
-            dropout_p=0.1,
+            dropout_p=0.25,
             device=device,
         )
 
@@ -94,6 +95,13 @@ class Trainer:
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
 
+                sampled_idx = [random.randint(0, len(inputs)) for _ in range(int(0.2 * len(inputs)))]
+                sampled_inputs = inputs[sampled_idx]
+                for i in range(len(sampled_inputs)):
+                    inputs_i = sampled_inputs[i]
+                    self.run_inference(inputs_i)
+                    pass
+
                 self.enc_opt.zero_grad()
                 self.dec_opt.zero_grad()
 
@@ -107,7 +115,7 @@ class Trainer:
                 )
 
                 # loss
-                logprobs = F.log_softmax(logits, dim = -1).to(self.device)
+                logprobs = F.softmax(logits, dim = -1).to(self.device)
                 loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
                 loss.backward()
 
@@ -124,6 +132,29 @@ class Trainer:
             wandb_logs["train_loss"] = train_loss
             wandb_logs["val_loss"] = val_loss
             wandb.log(wandb_logs)
+            pass
+
+    def run_inference(self, b_source_i):
+        with torch.no_grad():
+            source_words = []
+            for tok_idx in b_source_i.squeeze().tolist():
+                source_words.append(self.source_vocab.get_itos()[tok_idx])
+                pass
+
+            lstm_hidden, lstm_ctxt, _ = self.enc(b_source_i.unsqueeze(0))
+            decoded_tok_ids = self.dec.infer(lstm_hidden, lstm_ctxt, 20, self.device)
+
+            decoded_words = []
+            for tok_id in decoded_tok_ids:
+                decoded_words.append(self.target_vocab.get_itos()[tok_id])
+                pass
+
+            log_message = {
+                "source: ", " ".join(source_words),
+                "target: ", " ".join(decoded_words)
+            }
+
+            print(str(log_message), ",")
             pass
 
     def estimate_val_loss(self) -> float:
@@ -152,10 +183,19 @@ class Trainer:
                 )
 
                 # loss
-                logprobs = F.log_softmax(logits, dim = -1).to(self.device)
+                logprobs = F.softmax(logits, dim = -1).to(self.device)
                 loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
                 val_loss += loss.item()
-                pass
+
+                # inference
+                sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
+                sampled_inputs = inputs[sampled_idx]
+                for i in range(len(sampled_inputs)):
+                    inputs_i = sampled_inputs[i]
+                    self.run_inference(inputs_i)
+                    pass
+
+                continue
 
         val_loss /= len(self.val_loader)
 
