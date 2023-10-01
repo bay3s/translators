@@ -80,12 +80,10 @@ class Trainer:
         Returns:
             None
         """
-        enable_wandb = False
-        if enable_wandb:
-            wandb.login()
-            logs_directory = "./logs"
-            wandb.init(project = f"translators", dir = Path(logs_directory).mkdir(parents = True, exist_ok = True))
-            pass
+        wandb.login()
+        logs_directory = "./logs"
+        wandb.init(project = f"translators", dir = Path(logs_directory).mkdir(parents = True, exist_ok = True))
+        pass
 
         for epoch in range(self.num_epochs):
             train_loss = 0.0
