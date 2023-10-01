@@ -64,7 +64,7 @@ class Trainer:
             lstm_num_layers=2,
             lstm_hidden_dim=32,
             use_bidirec_lstm=True,
-            dropout_p=0.1,
+            dropout_p=0.5,
             device=device,
         )
 
