@@ -80,9 +80,12 @@ class Trainer:
         Returns:
             None
         """
-        wandb.login()
-        logs_directory = "./logs"
-        wandb.init(project = f"translators", dir = Path(logs_directory).mkdir(parents = True, exist_ok = True))
+        enable_wandb = False
+        if enable_wandb:
+            wandb.login()
+            logs_directory = "./logs"
+            wandb.init(project = f"translators", dir = Path(logs_directory).mkdir(parents = True, exist_ok = True))
+            pass
 
         for epoch in range(self.num_epochs):
             print(f">> Epoch [{epoch + 1}/{self.num_epochs}]")
@@ -95,6 +98,14 @@ class Trainer:
             train_loss = 0.0
             for inputs, targets in self.train_loader:
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
+
+                # # inference
+                # sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
+                # sampled_inputs = inputs[sampled_idx]
+                # for i in range(len(sampled_inputs)):
+                #     inputs_i = sampled_inputs[i]
+                #     self.run_inference(inputs_i)
+                #     pass
 
                 self.enc_opt.zero_grad()
                 self.dec_opt.zero_grad()
@@ -122,11 +133,12 @@ class Trainer:
             train_loss /= len(self.train_loader)
             val_loss = self.estimate_val_loss()
 
-            wandb_logs = dict()
-            wandb_logs["train_loss"] = train_loss
-            wandb_logs["val_loss"] = val_loss
-            wandb.log(wandb_logs)
-            pass
+            if enable_wandb:
+                wandb_logs = dict()
+                wandb_logs["train_loss"] = train_loss
+                wandb_logs["val_loss"] = val_loss
+                wandb.log(wandb_logs)
+                pass
 
     def run_inference(self, b_source_i):
         with torch.no_grad():
@@ -145,7 +157,7 @@ class Trainer:
                 pass
 
             log_message = " ".join(decoded_words)
-            print("translated_message: ", log_message)
+            print("translation output: ", log_message)
             print()
             pass
 
@@ -178,18 +190,17 @@ class Trainer:
                 logprobs = F.softmax(logits, dim = -1).to(self.device)
                 loss = self.loss_function(logprobs.view(-1, logprobs.size(-1)), targets.view(-1))
                 val_loss += loss.item()
-
-                # inference
-                sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
-                sampled_inputs = inputs[sampled_idx]
-                for i in range(len(sampled_inputs)):
-                    inputs_i = sampled_inputs[i]
-                    self.run_inference(inputs_i)
-                    pass
-
                 continue
 
         val_loss /= len(self.val_loader)
+
+        # inference
+        sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
+        sampled_inputs = inputs[sampled_idx]
+        for i in range(len(sampled_inputs)):
+            inputs_i = sampled_inputs[i]
+            self.run_inference(inputs_i)
+            pass
 
         self.enc.train()
         self.dec.train()
