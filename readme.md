@@ -66,6 +66,7 @@ produced by the stacked LSTMs used for encoding the input.
 - [x] move training to GPUs
 - [x] train partially, verify checkpoints
 - [x] write inference code
+- [ ] update teacher forcing to include a ratio
 - [ ] implement loss estimation using validation set
 - [ ] implement encoder with global and local attention
 - [ ] update readme with architectural & training details

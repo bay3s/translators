@@ -1,3 +1,4 @@
+import random
 from typing import Tuple, Dict, List
 
 import torch
@@ -114,10 +115,9 @@ class Decoder(nn.Module):
 
             logits_out.append(logits)
 
-            if use_teacher_forcing:
+            if use_teacher_forcing and random.uniform(0.0, 1.0) < 0.5:
                 prev_token = minibatch_target[:, t].unsqueeze(1).detach().to(device)
             else:
-                # @todo test this implementation.
                 _, prev_token = logits.topk(1)
                 prev_token = prev_token.squeeze(-1).detach().to(device)
                 pass
