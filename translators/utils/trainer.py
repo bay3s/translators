@@ -144,8 +144,8 @@ class Trainer:
                 pass
 
             log_message = {
-                "source: ", " ".join(source_words),
-                "target: ", " ".join(decoded_words)
+                "source: ": " ".join(source_words),
+                "target: ": " ".join(decoded_words)
             }
 
             print(str(log_message), ",")
