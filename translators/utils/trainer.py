@@ -195,6 +195,7 @@ class Trainer:
         val_loss /= len(self.val_loader)
 
         # inference
+        print("with `mode=eval`")
         sampled_idx = [random.randint(0, len(inputs) - 1) for _ in range(int(0.2 * len(inputs)))]
         sampled_inputs = inputs[sampled_idx]
         for i in range(len(sampled_inputs)):
@@ -204,6 +205,12 @@ class Trainer:
 
         self.enc.train()
         self.dec.train()
+
+        print("with `mode=train`")
+        for i in range(len(sampled_inputs)):
+            inputs_i = sampled_inputs[i]
+            self.run_inference(inputs_i)
+            pass
 
         return val_loss
 
